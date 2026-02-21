@@ -209,8 +209,8 @@ public class ScannerHudRenderer {
                 String here = new TranslationTextComponent("geolosys_scanner.direction.here").getString();
                 font.drawShadow(ms, here, textX, textY + 4, ACTIVE_COLOR);
             } else {
-                double worldAngle = Math.toDegrees(Math.atan2(dx, dz));
-                float relAngle = (float) (worldAngle - mc.player.yBodyRot);
+                double oreAngle = Math.toDegrees(Math.atan2(-dx, dz));
+                float relAngle = (float) (mc.player.yBodyRot - oreAngle);
                 int oreClr = getOreColor(ClientScanData.getTargetOreId());
                 drawDirectionArrow(ms, textX + 12, textY + 8, relAngle, 0xFF000000 | oreClr);
                 String distStr = new TranslationTextComponent("geolosys_scanner.format.blocks",
