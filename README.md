@@ -83,7 +83,7 @@ HUD остаётся на экране даже если убрать инстр
 ### Шаги
 
 ```bash
-git clone https://github.com/YOUR_USERNAME/GeolosysFinder.git
+git clone https://github.com/Gil4rt/GeolosysFinder.git
 cd GeolosysFinder
 ```
 
