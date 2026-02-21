@@ -10,7 +10,7 @@ import java.util.Optional;
 
 public class NetworkHandler {
 
-    private static final String PROTOCOL_VERSION = "1";
+    private static final String PROTOCOL_VERSION = "2";
 
     public static final SimpleChannel CHANNEL = NetworkRegistry.newSimpleChannel(
             new ResourceLocation(GeolosysScanner.MOD_ID, "main"),
@@ -29,11 +29,11 @@ public class NetworkHandler {
                 PacketScanRequest::handle,
                 Optional.of(NetworkDirection.PLAY_TO_SERVER));
 
-        // Client -> Server: player toggles target ore
-        CHANNEL.registerMessage(packetId++, PacketToggleTarget.class,
-                PacketToggleTarget::encode,
-                PacketToggleTarget::decode,
-                PacketToggleTarget::handle,
+        // Client -> Server: player selects a specific target ore
+        CHANNEL.registerMessage(packetId++, PacketSelectTarget.class,
+                PacketSelectTarget::encode,
+                PacketSelectTarget::decode,
+                PacketSelectTarget::handle,
                 Optional.of(NetworkDirection.PLAY_TO_SERVER));
 
         // Client -> Server: player deactivates scanner

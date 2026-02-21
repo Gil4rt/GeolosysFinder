@@ -1,5 +1,6 @@
 package com.geolosysscanner;
 
+import com.geolosysscanner.config.ClientConfig;
 import com.geolosysscanner.config.ScannerConfig;
 import com.geolosysscanner.network.NetworkHandler;
 import net.minecraftforge.common.MinecraftForge;
@@ -20,6 +21,7 @@ public class GeolosysScanner {
 
     public GeolosysScanner() {
         ModLoadingContext.get().registerConfig(ModConfig.Type.SERVER, ScannerConfig.SERVER_SPEC);
+        ModLoadingContext.get().registerConfig(ModConfig.Type.CLIENT, ClientConfig.CLIENT_SPEC);
 
         FMLJavaModLoadingContext.get().getModEventBus().addListener(this::commonSetup);
         FMLJavaModLoadingContext.get().getModEventBus().addListener(this::clientSetup);

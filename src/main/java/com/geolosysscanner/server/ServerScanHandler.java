@@ -27,9 +27,6 @@ public class ServerScanHandler {
         return playerStates.computeIfAbsent(player.getUUID(), k -> new PlayerScanState());
     }
 
-    /**
-     * Check whether the player is holding a valid scanner item.
-     */
     public static boolean isHoldingScanner(ServerPlayerEntity player) {
         ResourceLocation mainHand = player.getMainHandItem().getItem().getRegistryName();
         ResourceLocation offHand = player.getOffhandItem().getItem().getRegistryName();
@@ -40,9 +37,6 @@ public class ServerScanHandler {
         return false;
     }
 
-    /**
-     * Handle a scan request from a player.
-     */
     public static void handleScanRequest(ServerPlayerEntity player, int blockX, int blockZ) {
         if (player == null) return;
         if (!isHoldingScanner(player)) return;
@@ -57,21 +51,17 @@ public class ServerScanHandler {
         Map<String, ScanResult> oreData = new LinkedHashMap<>();
         List<String> oreIds = new ArrayList<>();
 
-        // Scan chunks in radius
         for (int cx = chunkX - (radius - 1); cx <= chunkX + (radius - 1); cx++) {
             for (int cz = chunkZ - (radius - 1); cz <= chunkZ + (radius - 1); cz++) {
                 scanChunk(world, cx, cz, minY, maxY, oreData, oreIds);
             }
         }
 
-        // Sort by count descending
         oreIds.sort((a, b) -> Integer.compare(oreData.get(b).count, oreData.get(a).count));
 
-        // Update server state
         PlayerScanState state = getState(player);
         state.setResults(oreIds, oreData);
 
-        // Build packet
         List<OreEntry> entries = new ArrayList<>();
         for (String id : oreIds) {
             ScanResult r = oreData.get(id);
@@ -87,9 +77,6 @@ public class ServerScanHandler {
                 player.getName().getString(), oreIds.size());
     }
 
-    /**
-     * Scan a single chunk for Geolosys ores.
-     */
     private static void scanChunk(World world, int chunkX, int chunkZ,
                                   int minY, int maxY,
                                   Map<String, ScanResult> oreData,
@@ -120,22 +107,20 @@ public class ServerScanHandler {
     }
 
     /**
-     * Toggle the target ore to the next one in the list.
+     * Select a specific target ore by index (from ore selection GUI).
      */
-    public static void handleToggleTarget(ServerPlayerEntity player) {
+    public static void handleSelectTarget(ServerPlayerEntity player, int targetIdx) {
         if (player == null) return;
         PlayerScanState state = getState(player);
         if (!state.active || state.oreIds.isEmpty()) return;
 
-        state.targetIdx = (state.targetIdx + 1) % state.oreIds.size();
+        // Validate bounds
+        if (targetIdx < 0 || targetIdx >= state.oreIds.size()) return;
 
-        // Send immediate radar update with new target
+        state.targetIdx = targetIdx;
         sendRadarUpdate(player, state);
     }
 
-    /**
-     * Deactivate the scanner for a player.
-     */
     public static void handleDeactivate(ServerPlayerEntity player) {
         if (player == null) return;
         PlayerScanState state = getState(player);
@@ -147,22 +132,9 @@ public class ServerScanHandler {
         );
     }
 
-    /**
-     * Called every tick for each player to send periodic radar updates.
-     */
     public static void tickPlayer(ServerPlayerEntity player) {
         PlayerScanState state = getState(player);
         if (!state.active || state.oreIds.isEmpty()) return;
-
-        // Check if still holding scanner
-        if (!isHoldingScanner(player)) {
-            state.active = false;
-            NetworkHandler.CHANNEL.send(
-                    PacketDistributor.PLAYER.with(() -> player),
-                    new PacketScannerDeactivated()
-            );
-            return;
-        }
 
         state.tickCounter++;
         int interval = ScannerConfig.SERVER.updateIntervalTicks.get();
@@ -171,9 +143,6 @@ public class ServerScanHandler {
         sendRadarUpdate(player, state);
     }
 
-    /**
-     * Compute and send the radar proximity update.
-     */
     private static void sendRadarUpdate(ServerPlayerEntity player, PlayerScanState state) {
         String targetId = state.oreIds.get(state.targetIdx);
         ScanResult result = state.oreData.get(targetId);
@@ -202,14 +171,11 @@ public class ServerScanHandler {
                 new PacketRadarUpdate(
                         targetId, state.targetIdx, bestDist,
                         bestBlock.getX(), bestBlock.getY(), bestBlock.getZ(),
-                        (int) Math.floor(py)
+                        (int) Math.floor(py), result.count
                 )
         );
     }
 
-    /**
-     * Clean up state when a player disconnects.
-     */
     public static void removePlayer(UUID uuid) {
         playerStates.remove(uuid);
     }

@@ -18,9 +18,11 @@ public class PacketRadarUpdate {
     private final int closestY;
     private final int closestZ;
     private final int playerY;
+    private final int blockCount;
 
     public PacketRadarUpdate(String targetOreId, int targetIdx, double distance3d,
-                             int closestX, int closestY, int closestZ, int playerY) {
+                             int closestX, int closestY, int closestZ, int playerY,
+                             int blockCount) {
         this.targetOreId = targetOreId;
         this.targetIdx = targetIdx;
         this.distance3d = distance3d;
@@ -28,6 +30,7 @@ public class PacketRadarUpdate {
         this.closestY = closestY;
         this.closestZ = closestZ;
         this.playerY = playerY;
+        this.blockCount = blockCount;
     }
 
     public static void encode(PacketRadarUpdate msg, PacketBuffer buf) {
@@ -38,6 +41,7 @@ public class PacketRadarUpdate {
         buf.writeInt(msg.closestY);
         buf.writeInt(msg.closestZ);
         buf.writeInt(msg.playerY);
+        buf.writeVarInt(msg.blockCount);
     }
 
     public static PacketRadarUpdate decode(PacketBuffer buf) {
@@ -48,14 +52,16 @@ public class PacketRadarUpdate {
         int closestY = buf.readInt();
         int closestZ = buf.readInt();
         int playerY = buf.readInt();
+        int blockCount = buf.readVarInt();
         return new PacketRadarUpdate(targetOreId, targetIdx, distance3d,
-                closestX, closestY, closestZ, playerY);
+                closestX, closestY, closestZ, playerY, blockCount);
     }
 
     public static void handle(PacketRadarUpdate msg, Supplier<NetworkEvent.Context> ctx) {
         ctx.get().enqueueWork(() -> {
             ClientScanData.receiveRadarUpdate(msg.targetOreId, msg.targetIdx,
-                    msg.distance3d, msg.closestX, msg.closestY, msg.closestZ, msg.playerY);
+                    msg.distance3d, msg.closestX, msg.closestY, msg.closestZ,
+                    msg.playerY, msg.blockCount);
         });
         ctx.get().setPacketHandled(true);
     }

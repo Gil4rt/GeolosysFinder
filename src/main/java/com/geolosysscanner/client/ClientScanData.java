@@ -24,6 +24,7 @@ public class ClientScanData {
     private static int closestY = 0;
     private static int closestZ = 0;
     private static int playerY = 0;
+    private static int blockCount = 0;
     private static boolean hasRadarData = false;
 
     // --- Sound/animation ---
@@ -65,6 +66,10 @@ public class ClientScanData {
         return playerY;
     }
 
+    public static int getBlockCount() {
+        return blockCount;
+    }
+
     public static boolean hasRadarData() {
         return hasRadarData;
     }
@@ -88,7 +93,8 @@ public class ClientScanData {
     }
 
     public static void receiveRadarUpdate(String oreId, int idx, double dist,
-                                          int cx, int cy, int cz, int py) {
+                                          int cx, int cy, int cz, int py,
+                                          int count) {
         targetOreId = oreId;
         targetIdx = idx;
         distance3d = dist;
@@ -96,6 +102,7 @@ public class ClientScanData {
         closestY = cy;
         closestZ = cz;
         playerY = py;
+        blockCount = count;
         hasRadarData = true;
         radarUpdatedThisTick = true;
     }
@@ -105,5 +112,6 @@ public class ClientScanData {
         hasRadarData = false;
         ores = Collections.emptyList();
         targetIdx = 0;
+        blockCount = 0;
     }
 }

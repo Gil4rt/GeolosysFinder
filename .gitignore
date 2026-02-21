@@ -37,3 +37,6 @@ jdk8/
 
 # Original KubeJS script (not part of the mod)
 geolosys_finder.js
+
+# Claude plans
+.claude/
