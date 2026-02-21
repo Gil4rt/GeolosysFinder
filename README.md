@@ -1,39 +1,38 @@
 # Geolosys Finder (Scanner Addon)
 
-Addon-мод для [Geolosys](https://www.curseforge.com/minecraft/mc-mods/geolosys) (Minecraft Forge 1.16.5).
-Добавляет инструмент геологической разведки — сканирование чанков на руды, HUD-радар с приближением, подсветку руды и звуковую индикацию.
+[![Русская версия](https://img.shields.io/badge/lang-Русский-blue)](README_RU.md)
 
 An addon mod for [Geolosys](https://www.curseforge.com/minecraft/mc-mods/geolosys) (Minecraft Forge 1.16.5).
 Adds a geological prospecting tool — chunk ore scanning, proximity HUD radar, ore highlighting, and sound indicators.
 
 ---
 
-## Возможности / Features
+## Features
 
-- **Geo Scanner** — свой предмет с крафтом, прочностью (200 использований) и кулдауном (3 сек)
-- Сканирование чанков на руды Geolosys правым кликом (ПКМ)
-- HUD-панель справа по центру экрана с информацией о найденных рудах
-- Радар приближения: шкала нагрева, расстояние, глубина, **вращающаяся стрелка-компас** и координаты руды
-- GUI выбора руды (Shift+ПКМ) с иконками блоков и оценкой плотности залежей
-- **Подсветка руды** — светящийся контур ближайшего блока руды на расстоянии <5 блоков
-- Звуковая индикация приближения к руде (настраиваемая, с кнопкой мута в GUI)
-- Полная локализация: русский и английский языки
-- Серверный и клиентский конфиг
-
----
-
-## Установка / Installation
-
-1. Установите [Minecraft Forge 1.16.5](https://files.minecraftforge.net/net/minecraftforge/forge/index_1.16.5.html)
-2. Установите [Geolosys](https://www.curseforge.com/minecraft/mc-mods/geolosys) (версия 5.0.0+)
-3. Скачайте `geolosys-scanner-addon-1.1.0.jar` из [Releases](../../releases)
-4. Положите JAR-файл в папку `mods/`
-
-**Мультиплеер:** мод нужно установить и на сервер, и на клиент.
+- **Geo Scanner** — custom craftable item with durability (200 uses) and cooldown (3 sec)
+- Chunk scanning for Geolosys ores via right-click (RMB)
+- HUD panel on the right side of the screen with ore information
+- Proximity radar: heat bar, distance, depth, **rotating compass arrow**, and ore coordinates
+- Ore Selection GUI (Shift+RMB) with block icons and deposit density estimates
+- **Ore highlighting** — glowing wireframe outline on the nearest ore block when within 5 blocks
+- Proximity sound that speeds up as you get closer (toggleable via mute button in GUI)
+- Full localization: English and Russian
+- Server and client configuration
 
 ---
 
-## Крафт Geo Scanner / Crafting
+## Installation
+
+1. Install [Minecraft Forge 1.16.5](https://files.minecraftforge.net/net/minecraftforge/forge/index_1.16.5.html)
+2. Install [Geolosys](https://www.curseforge.com/minecraft/mc-mods/geolosys) (version 5.0.0+)
+3. Download `geolosys-scanner-addon-1.1.1.jar` from [Releases](../../releases)
+4. Place the JAR file into the `mods/` folder
+
+**Multiplayer:** the mod must be installed on both server and client.
+
+---
+
+## Crafting the Geo Scanner
 
 ```
     [D]
@@ -41,126 +40,126 @@ Adds a geological prospecting tool — chunk ore scanning, proximity HUD radar, 
     [S]
 ```
 
-- **D** = Diamond (кристалл)
-- **G** = Gold Ingot (золотые кольца)
-- **C** = Compass (сканирующий механизм)
-- **S** = Stick (рукоять)
+- **D** = Diamond (scanning crystal)
+- **G** = Gold Ingot (decorative rings)
+- **C** = Compass (scanning mechanism)
+- **S** = Stick (handle)
 
-Прочность: 200 использований. Каждое сканирование тратит 1 единицу.
-
----
-
-## Использование / Usage
-
-Возьмите в руку **Geo Scanner**.
-
-| Действие | Клавиша | Описание |
-|---|---|---|
-| Сканировать | ПКМ (RMB) | Сканирует чанки вокруг. На HUD появится список найденных руд |
-| Выбрать руду | Shift + ПКМ | Открывает GUI со списком руд, иконками и оценкой плотности |
-| Выключить сканер | ЛКМ (LMB) | Выключает HUD и радар |
-
-После выбора руды HUD переключается в режим радара:
-- **Шкала нагрева** — чем ближе к руде, тем больше заполнена (пульсирует на <5 блоков)
-- **Стрелка-компас** — вращающийся треугольник указывает направление к руде относительно позиции игрока
-- **Координаты** — точные X Y Z координаты ближайшего блока руды
-- **Расстояние и глубина** — сколько блоков до руды, копать вниз или вверх
-- **Подсветка** — при расстоянии <5 блоков появляется светящийся контур на блоке руды
-- **Звук** — пинг ускоряется при приближении. Отключается кнопкой в GUI выбора руды
-- **Кулдаун** — 3 секунды между сканированиями (настраивается в конфиге)
-
-HUD остаётся на экране даже если убрать инструмент — можно спокойно копать и строить.
+Durability: 200 uses. Each scan consumes 1 point.
 
 ---
 
-## Конфигурация / Configuration
+## Usage
 
-### Серверный конфиг (`geolosys_scanner-server.toml`)
+Hold the **Geo Scanner** in your hand.
 
-| Параметр | По умолчанию | Описание |
+| Action | Key | Description |
 |---|---|---|
-| `allowedItems` | `["geolosys_scanner:geo_scanner"]` | Предметы, активирующие сканер |
-| `scanRadius` | `1` | Радиус сканирования в чанках (1–5) |
-| `minDepth` | `1` | Минимальный Y уровень сканирования |
-| `maxDepth` | `80` | Максимальный Y уровень сканирования |
-| `updateIntervalTicks` | `20` | Интервал обновления радара в тиках |
-| `cooldownSeconds` | `3` | Кулдаун между сканированиями в секундах (1–30) |
+| Scan | RMB | Scans surrounding chunks. A list of found ores appears on the HUD |
+| Select ore | Shift + RMB | Opens a GUI with ore list, block icons, and density estimates |
+| Deactivate | LMB | Turns off the HUD and radar |
 
-### Клиентский конфиг (`geolosys_scanner-client.toml`)
+After selecting an ore, the HUD switches to radar mode:
+- **Heat bar** — fills up as you get closer to the ore (pulses when < 5 blocks away)
+- **Compass arrow** — a rotating triangle that points toward the ore relative to your position
+- **Coordinates** — exact X Y Z of the nearest ore block
+- **Distance & depth** — how many blocks to the ore, dig down or up
+- **Highlighting** — at < 5 blocks, a glowing wireframe outline appears on the ore block
+- **Sound** — ping speeds up as you approach. Toggle it off in the Ore Selection GUI
+- **Cooldown** — 3 seconds between scans (configurable)
 
-| Параметр | По умолчанию | Описание |
-|---|---|---|
-| `soundEnabled` | `true` | Включить звук радара |
-| `soundVolume` | `0.5` | Громкость (0.1–1.0) |
-| `hudEnabled` | `true` | Показывать HUD |
+The HUD stays on screen even if you put the tool away — mine and build freely.
 
 ---
 
-## Сборка из исходников / Building from Source
+## Configuration
 
-### Требования
+### Server Config (`geolosys_scanner-server.toml`)
+
+| Setting | Default | Description |
+|---|---|---|
+| `allowedItems` | `["geolosys_scanner:geo_scanner"]` | Items that can activate the scanner |
+| `scanRadius` | `1` | Scan radius in chunks (1–5) |
+| `minDepth` | `1` | Minimum Y level to scan |
+| `maxDepth` | `80` | Maximum Y level to scan |
+| `updateIntervalTicks` | `20` | Radar update interval in ticks |
+| `cooldownSeconds` | `3` | Cooldown between scans in seconds (1–30) |
+
+### Client Config (`geolosys_scanner-client.toml`)
+
+| Setting | Default | Description |
+|---|---|---|
+| `soundEnabled` | `true` | Enable radar sound |
+| `soundVolume` | `0.5` | Volume (0.1–1.0) |
+| `hudEnabled` | `true` | Show HUD |
+
+---
+
+## Building from Source
+
+### Requirements
 
 - **Java Development Kit 8** (JDK 8) — [Adoptium Temurin](https://adoptium.net/temurin/releases/?version=8)
 - **Git**
 
-### Шаги
+### Steps
 
 ```bash
 git clone https://github.com/Gil4rt/GeolosysFinder.git
 cd GeolosysFinder
 ```
 
-Если ваша системная Java **не** версии 8, укажите путь к JDK 8 в `gradle.properties`:
+If your system Java is **not** version 8, specify the JDK 8 path in `gradle.properties`:
 
 ```properties
 org.gradle.java.home=C:/path/to/jdk8
 ```
 
-Сборка:
+Build:
 
 ```bash
 ./gradlew build
 ```
 
-Готовый JAR будет в `build/libs/geolosys-scanner-addon-1.1.0.jar`.
+The output JAR will be in `build/libs/geolosys-scanner-addon-1.1.1.jar`.
 
 ---
 
-## Структура проекта / Project Structure
+## Project Structure
 
 ```
 src/main/java/com/geolosysscanner/
-├── GeolosysScanner.java          # Точка входа мода
+├── GeolosysScanner.java          # Mod entry point
 ├── config/
-│   ├── ScannerConfig.java        # Серверный конфиг
-│   └── ClientConfig.java         # Клиентский конфиг
+│   ├── ScannerConfig.java        # Server config
+│   └── ClientConfig.java         # Client config
 ├── item/
-│   ├── ModItems.java             # Регистрация предметов
-│   └── GeoScannerItem.java       # Предмет Geo Scanner
+│   ├── ModItems.java             # Item registration
+│   └── GeoScannerItem.java       # Geo Scanner item
 ├── network/
-│   ├── NetworkHandler.java       # Регистрация пакетов
-│   ├── OreEntry.java             # DTO руды
-│   ├── PacketScanRequest.java    # C→S: запрос сканирования
-│   ├── PacketSelectTarget.java   # C→S: выбор руды
-│   ├── PacketDeactivate.java     # C→S: выключение
-│   ├── PacketScanResult.java     # S→C: результат сканирования
-│   ├── PacketRadarUpdate.java    # S→C: обновление радара
-│   └── PacketScannerDeactivated.java  # S→C: подтверждение выкл.
+│   ├── NetworkHandler.java       # Packet registration
+│   ├── OreEntry.java             # Ore DTO
+│   ├── PacketScanRequest.java    # C→S: scan request
+│   ├── PacketSelectTarget.java   # C→S: ore selection
+│   ├── PacketDeactivate.java     # C→S: deactivation
+│   ├── PacketScanResult.java     # S→C: scan results
+│   ├── PacketRadarUpdate.java    # S→C: radar update
+│   └── PacketScannerDeactivated.java  # S→C: deactivation ack
 ├── server/
-│   ├── ServerScanHandler.java    # Логика сканирования
-│   ├── ServerEventHandler.java   # Тик и логаут
-│   ├── PlayerScanState.java      # Состояние игрока
-│   └── ScanResult.java           # Аккумулятор блоков руды
+│   ├── ServerScanHandler.java    # Scan logic
+│   ├── ServerEventHandler.java   # Tick & logout
+│   ├── PlayerScanState.java      # Player state
+│   └── ScanResult.java           # Ore block accumulator
 └── client/
-    ├── ClientEventHandler.java   # Ввод, звук
-    ├── ClientScanData.java       # Клиентское состояние
-    ├── ScannerHudRenderer.java   # HUD оверлей
-    ├── OreSelectionScreen.java   # GUI выбора руды
-    └── OreHighlightRenderer.java # Подсветка блоков руды
+    ├── ClientEventHandler.java   # Input, sound
+    ├── ClientScanData.java       # Client state
+    ├── ScannerHudRenderer.java   # HUD overlay
+    ├── OreSelectionScreen.java   # Ore selection GUI
+    └── OreHighlightRenderer.java # Ore block highlighting
 ```
 
 ---
 
-## Лицензия / License
+## License
 
 MIT
