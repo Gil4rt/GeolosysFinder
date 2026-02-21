@@ -2,6 +2,7 @@ package com.geolosysscanner;
 
 import com.geolosysscanner.config.ClientConfig;
 import com.geolosysscanner.config.ScannerConfig;
+import com.geolosysscanner.item.ModItems;
 import com.geolosysscanner.network.NetworkHandler;
 import net.minecraftforge.common.MinecraftForge;
 import net.minecraftforge.fml.ModLoadingContext;
@@ -26,6 +27,8 @@ public class GeolosysScanner {
         FMLJavaModLoadingContext.get().getModEventBus().addListener(this::commonSetup);
         FMLJavaModLoadingContext.get().getModEventBus().addListener(this::clientSetup);
 
+        ModItems.ITEMS.register(FMLJavaModLoadingContext.get().getModEventBus());
+
         MinecraftForge.EVENT_BUS.register(this);
     }
 
@@ -37,5 +40,6 @@ public class GeolosysScanner {
     private void clientSetup(final FMLClientSetupEvent event) {
         MinecraftForge.EVENT_BUS.register(new com.geolosysscanner.client.ClientEventHandler());
         MinecraftForge.EVENT_BUS.register(new com.geolosysscanner.client.ScannerHudRenderer());
+        MinecraftForge.EVENT_BUS.register(new com.geolosysscanner.client.OreHighlightRenderer());
     }
 }

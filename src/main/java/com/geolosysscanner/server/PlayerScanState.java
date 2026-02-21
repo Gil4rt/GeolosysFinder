@@ -15,6 +15,7 @@ public class PlayerScanState {
     public final List<String> oreIds = new ArrayList<>();
     public final Map<String, ScanResult> oreData = new LinkedHashMap<>();
     public int tickCounter;
+    public long lastScanTimeMs;
 
     public void clear() {
         active = false;

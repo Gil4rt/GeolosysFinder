@@ -40,3 +40,6 @@ geolosys_finder.js
 
 # Claude plans
 .claude/
+
+# CurseForge description (local only)
+CURSEFORGE_DESCRIPTION.md

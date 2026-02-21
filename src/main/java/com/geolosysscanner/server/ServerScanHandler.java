@@ -9,8 +9,11 @@ import com.geolosysscanner.network.PacketScanResult;
 import com.geolosysscanner.network.PacketScannerDeactivated;
 import net.minecraft.block.BlockState;
 import net.minecraft.entity.player.ServerPlayerEntity;
+import net.minecraft.item.ItemStack;
+import net.minecraft.util.Hand;
 import net.minecraft.util.ResourceLocation;
 import net.minecraft.util.math.BlockPos;
+import net.minecraft.util.text.TranslationTextComponent;
 import net.minecraft.world.World;
 import net.minecraftforge.fml.network.PacketDistributor;
 
@@ -28,18 +31,42 @@ public class ServerScanHandler {
     }
 
     public static boolean isHoldingScanner(ServerPlayerEntity player) {
-        ResourceLocation mainHand = player.getMainHandItem().getItem().getRegistryName();
-        ResourceLocation offHand = player.getOffhandItem().getItem().getRegistryName();
+        return isAllowedItemStack(player.getMainHandItem())
+                || isAllowedItemStack(player.getOffhandItem());
+    }
 
+    private static boolean isAllowedItemStack(ItemStack stack) {
+        if (stack.isEmpty()) return false;
+        ResourceLocation regName = stack.getItem().getRegistryName();
+        if (regName == null) return false;
         List<? extends String> allowed = ScannerConfig.SERVER.allowedItems.get();
-        if (mainHand != null && allowed.contains(mainHand.toString())) return true;
-        if (offHand != null && allowed.contains(offHand.toString())) return true;
-        return false;
+        return allowed.contains(regName.toString());
     }
 
     public static void handleScanRequest(ServerPlayerEntity player, int blockX, int blockZ) {
         if (player == null) return;
         if (!isHoldingScanner(player)) return;
+
+        // Cooldown check
+        PlayerScanState state = getState(player);
+        long now = System.currentTimeMillis();
+        long cooldownMs = ScannerConfig.SERVER.cooldownSeconds.get() * 1000L;
+        if (now - state.lastScanTimeMs < cooldownMs) {
+            player.displayClientMessage(
+                    new TranslationTextComponent("geolosys_scanner.hud.cooldown"), true);
+            return;
+        }
+        state.lastScanTimeMs = now;
+
+        // Damage the scanner item
+        ItemStack mainHand = player.getMainHandItem();
+        ItemStack offHand = player.getOffhandItem();
+        boolean mainHandIsScanner = isAllowedItemStack(mainHand);
+        ItemStack scanner = mainHandIsScanner ? mainHand : offHand;
+        if (scanner.isDamageableItem()) {
+            Hand hand = mainHandIsScanner ? Hand.MAIN_HAND : Hand.OFF_HAND;
+            scanner.hurtAndBreak(1, player, (p) -> p.broadcastBreakEvent(hand));
+        }
 
         World world = player.level;
         int chunkX = blockX >> 4;
@@ -59,7 +86,6 @@ public class ServerScanHandler {
 
         oreIds.sort((a, b) -> Integer.compare(oreData.get(b).count, oreData.get(a).count));
 
-        PlayerScanState state = getState(player);
         state.setResults(oreIds, oreData);
 
         List<OreEntry> entries = new ArrayList<>();
@@ -106,15 +132,11 @@ public class ServerScanHandler {
         }
     }
 
-    /**
-     * Select a specific target ore by index (from ore selection GUI).
-     */
     public static void handleSelectTarget(ServerPlayerEntity player, int targetIdx) {
         if (player == null) return;
         PlayerScanState state = getState(player);
         if (!state.active || state.oreIds.isEmpty()) return;
 
-        // Validate bounds
         if (targetIdx < 0 || targetIdx >= state.oreIds.size()) return;
 
         state.targetIdx = targetIdx;
@@ -147,6 +169,22 @@ public class ServerScanHandler {
         String targetId = state.oreIds.get(state.targetIdx);
         ScanResult result = state.oreData.get(targetId);
         if (result == null || result.blocks.isEmpty()) return;
+
+        World world = player.level;
+
+        // Validate blocks — remove any that have been mined
+        Iterator<BlockPos> iter = result.blocks.iterator();
+        while (iter.hasNext()) {
+            BlockPos pos = iter.next();
+            BlockState bs = world.getBlockState(pos);
+            ResourceLocation rn = bs.getBlock().getRegistryName();
+            if (rn == null || !rn.toString().equals(targetId)) {
+                iter.remove();
+                result.count = Math.max(0, result.count - 1);
+            }
+        }
+
+        if (result.blocks.isEmpty()) return;
 
         double px = player.getX();
         double py = player.getY();

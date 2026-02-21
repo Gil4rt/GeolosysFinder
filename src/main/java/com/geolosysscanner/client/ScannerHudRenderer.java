@@ -13,6 +13,13 @@ import net.minecraftforge.eventbus.api.SubscribeEvent;
 
 import java.util.List;
 
+import com.mojang.blaze3d.systems.RenderSystem;
+import net.minecraft.client.renderer.BufferBuilder;
+import net.minecraft.client.renderer.Tessellator;
+import net.minecraft.client.renderer.vertex.DefaultVertexFormats;
+import net.minecraft.util.math.vector.Matrix4f;
+import org.lwjgl.opengl.GL11;
+
 public class ScannerHudRenderer {
 
     private static final int BG_COLOR = 0xAA000000;
@@ -118,7 +125,7 @@ public class ScannerHudRenderer {
     }
 
     private void renderRadarMode(MatrixStack ms, FontRenderer font, int x, int screenHeight) {
-        int panelHeight = PADDING * 2 + 11 * LINE_HEIGHT + 8;
+        int panelHeight = PADDING * 2 + 13 * LINE_HEIGHT + 8;
         int y = (screenHeight - panelHeight) / 2;
 
         drawPanel(ms, x, y, PANEL_WIDTH, panelHeight);
@@ -191,9 +198,33 @@ public class ScannerHudRenderer {
         font.drawShadow(ms, depthStr, textX, textY, depthColor);
         textY += LINE_HEIGHT;
 
-        // Camera-relative direction
-        String direction = getDirectionString();
-        font.drawShadow(ms, direction, textX, textY, ACCENT_COLOR);
+        // Direction compass arrow + horizontal distance
+        Minecraft mc = Minecraft.getInstance();
+        if (mc.player != null) {
+            int dx = ClientScanData.getClosestX() - (int) Math.floor(mc.player.getX());
+            int dz = ClientScanData.getClosestZ() - (int) Math.floor(mc.player.getZ());
+            int horizDist = (int) Math.sqrt(dx * dx + dz * dz);
+
+            if (horizDist <= 1) {
+                String here = new TranslationTextComponent("geolosys_scanner.direction.here").getString();
+                font.drawShadow(ms, here, textX, textY + 4, ACTIVE_COLOR);
+            } else {
+                double worldAngle = Math.toDegrees(Math.atan2(dx, dz));
+                float relAngle = (float) (worldAngle - mc.player.yBodyRot);
+                int oreClr = getOreColor(ClientScanData.getTargetOreId());
+                drawDirectionArrow(ms, textX + 12, textY + 8, relAngle, 0xFF000000 | oreClr);
+                String distStr = new TranslationTextComponent("geolosys_scanner.format.blocks",
+                        horizDist).getString();
+                font.drawShadow(ms, distStr, textX + 28, textY + 4, ACCENT_COLOR);
+            }
+            textY += 20;
+
+            // Ore coordinates
+            String coords = "X: " + ClientScanData.getClosestX()
+                    + "  Y: " + ClientScanData.getClosestY()
+                    + "  Z: " + ClientScanData.getClosestZ();
+            font.drawShadow(ms, coords, textX, textY, INACTIVE_COLOR);
+        }
     }
 
     private void renderHeatBar(MatrixStack ms, int x, int y, int totalWidth, double dist3d) {
@@ -271,53 +302,46 @@ public class ScannerHudRenderer {
     }
 
     /**
-     * Camera-relative direction to the ore.
-     * Calculates the angle between where the player is looking and where the ore is,
-     * then maps it to 8 relative directions (ahead, behind, left, right, and diagonals).
+     * Draws a rotating triangle arrow pointing toward the ore.
+     * The angle is relative to the player's body rotation.
      */
-    private String getDirectionString() {
-        Minecraft mc = Minecraft.getInstance();
-        if (mc.player == null) return "";
+    private void drawDirectionArrow(MatrixStack ms, int centerX, int centerY,
+                                     float angleDeg, int color) {
+        float rad = (float) Math.toRadians(angleDeg);
+        float size = 10f;
 
-        int dx = ClientScanData.getClosestX() - (int) Math.floor(mc.player.getX());
-        int dz = ClientScanData.getClosestZ() - (int) Math.floor(mc.player.getZ());
+        // Arrow tip (negate sin for screen coords: positive angle = left)
+        float tipX = centerX - (float) Math.sin(rad) * size;
+        float tipY = centerY - (float) Math.cos(rad) * size;
 
-        if (Math.abs(dx) <= 1 && Math.abs(dz) <= 1) {
-            return new TranslationTextComponent("geolosys_scanner.direction.here").getString();
-        }
+        // Arrow base points (±140° from tip direction)
+        float baseAngle = (float) Math.toRadians(140);
+        float baseSize = size * 0.55f;
+        float b1x = centerX - (float) Math.sin(rad + baseAngle) * baseSize;
+        float b1y = centerY - (float) Math.cos(rad + baseAngle) * baseSize;
+        float b2x = centerX - (float) Math.sin(rad - baseAngle) * baseSize;
+        float b2y = centerY - (float) Math.cos(rad - baseAngle) * baseSize;
 
-        // World angle to ore (degrees). atan2(dx, dz) gives 0° = +Z (south in MC)
-        double worldAngle = Math.toDegrees(Math.atan2(dx, dz));
+        Matrix4f matrix = ms.last().pose();
+        float r = ((color >> 16) & 0xFF) / 255f;
+        float g = ((color >> 8) & 0xFF) / 255f;
+        float b = (color & 0xFF) / 255f;
+        float a = ((color >> 24) & 0xFF) / 255f;
 
-        // Player yaw: 0° = +Z (south), 90° = -X (west), -90°/270° = +X (east)
-        double playerYaw = mc.player.yRot;
-
-        // Relative angle: how far the ore is from where the player is looking
-        double relAngle = worldAngle - playerYaw;
-
-        // Normalize to -180..180
-        while (relAngle > 180) relAngle -= 360;
-        while (relAngle < -180) relAngle += 360;
-
-        String arrow;
-        String dirKey;
-
-        if (relAngle >= -22.5 && relAngle < 22.5)         { arrow = "\u2191"; dirKey = "ahead"; }
-        else if (relAngle >= 22.5 && relAngle < 67.5)      { arrow = "\u2196"; dirKey = "ahead_left"; }
-        else if (relAngle >= 67.5 && relAngle < 112.5)     { arrow = "\u2190"; dirKey = "left"; }
-        else if (relAngle >= 112.5 && relAngle < 157.5)    { arrow = "\u2199"; dirKey = "behind_left"; }
-        else if (relAngle >= 157.5 || relAngle < -157.5)   { arrow = "\u2193"; dirKey = "behind"; }
-        else if (relAngle >= -157.5 && relAngle < -112.5)  { arrow = "\u2198"; dirKey = "behind_right"; }
-        else if (relAngle >= -112.5 && relAngle < -67.5)   { arrow = "\u2192"; dirKey = "right"; }
-        else                                                { arrow = "\u2197"; dirKey = "ahead_right"; }
-
-        String dirName = new TranslationTextComponent("geolosys_scanner.direction." + dirKey).getString();
-        int horizDist = (int) Math.sqrt(dx * dx + dz * dz);
-        String blocksStr = new TranslationTextComponent("geolosys_scanner.format.blocks", horizDist).getString();
-        return arrow + " " + dirName + " (" + blocksStr + ")";
+        Tessellator tess = Tessellator.getInstance();
+        BufferBuilder buf = tess.getBuilder();
+        RenderSystem.enableBlend();
+        RenderSystem.disableTexture();
+        buf.begin(GL11.GL_TRIANGLES, DefaultVertexFormats.POSITION_COLOR);
+        buf.vertex(matrix, tipX, tipY, 0).color(r, g, b, a).endVertex();
+        buf.vertex(matrix, b1x, b1y, 0).color(r, g, b, a).endVertex();
+        buf.vertex(matrix, b2x, b2y, 0).color(r, g, b, a).endVertex();
+        tess.end();
+        RenderSystem.enableTexture();
+        RenderSystem.disableBlend();
     }
 
-    private int getOreColor(String oreId) {
+    static int getOreColor(String oreId) {
         if (oreId.contains("coal") || oreId.contains("lignite") || oreId.contains("anthracite")
                 || oreId.contains("bituminous")) return 0xFF999999;
         if (oreId.contains("hematite") || oreId.contains("limonite") || oreId.contains("magnetite"))

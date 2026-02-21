@@ -1,6 +1,7 @@
 package com.geolosysscanner.client;
 
 import com.geolosysscanner.config.ClientConfig;
+import com.geolosysscanner.config.ScannerConfig;
 import com.geolosysscanner.network.NetworkHandler;
 import com.geolosysscanner.network.PacketDeactivate;
 import com.geolosysscanner.network.PacketScanRequest;
@@ -10,6 +11,8 @@ import net.minecraft.item.ItemStack;
 import net.minecraft.util.ResourceLocation;
 import net.minecraft.util.SoundEvents;
 import net.minecraftforge.client.event.InputEvent;
+
+import java.util.List;
 import net.minecraftforge.event.TickEvent;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
 
@@ -99,7 +102,7 @@ public class ClientEventHandler {
         if (stack.isEmpty()) return false;
         ResourceLocation regName = stack.getItem().getRegistryName();
         if (regName == null) return false;
-        String id = regName.toString();
-        return id.equals("geolosys:prospectors_pick") || id.equals("minecraft:stick");
+        List<? extends String> allowed = ScannerConfig.SERVER.allowedItems.get();
+        return allowed.contains(regName.toString());
     }
 }

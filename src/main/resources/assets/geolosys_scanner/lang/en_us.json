@@ -13,6 +13,12 @@
   "geolosys_scanner.hud.heat_hot": "Hot",
   "geolosys_scanner.hud.heat_warm": "Warm",
   "geolosys_scanner.hud.heat_cold": "Cold",
+  "geolosys_scanner.hud.cooldown": "Scanner recharging...",
+
+  "item.geolosys_scanner.geo_scanner": "Geo Scanner",
+  "item.geolosys_scanner.geo_scanner.tooltip1": "RMB \u2014 Scan for ores",
+  "item.geolosys_scanner.geo_scanner.tooltip2": "Shift+RMB \u2014 Ore selection",
+  "item.geolosys_scanner.geo_scanner.tooltip3": "LMB \u2014 Deactivate scanner",
 
   "geolosys_scanner.format.blocks": "%d blocks",
   "geolosys_scanner.format.ore_info": "%1$d blocks | Y: %2$d\u2013%3$d",

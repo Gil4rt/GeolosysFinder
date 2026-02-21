@@ -23,6 +23,7 @@ public class ScannerConfig {
         public final ForgeConfigSpec.IntValue minDepth;
         public final ForgeConfigSpec.IntValue maxDepth;
         public final ForgeConfigSpec.IntValue updateIntervalTicks;
+        public final ForgeConfigSpec.IntValue cooldownSeconds;
 
         public Server(ForgeConfigSpec.Builder builder) {
             builder.push("scanner");
@@ -30,7 +31,7 @@ public class ScannerConfig {
             allowedItems = builder
                     .comment("List of item IDs that can be used as a scanner trigger")
                     .defineList("allowedItems",
-                            Arrays.asList("geolosys:prospectors_pick", "minecraft:stick"),
+                            Arrays.asList("geolosys_scanner:geo_scanner"),
                             o -> o instanceof String);
 
             scanRadius = builder
@@ -48,6 +49,10 @@ public class ScannerConfig {
             updateIntervalTicks = builder
                     .comment("Radar update interval in ticks (20 = 1 second)")
                     .defineInRange("updateIntervalTicks", 20, 5, 100);
+
+            cooldownSeconds = builder
+                    .comment("Cooldown between scans in seconds")
+                    .defineInRange("cooldownSeconds", 3, 1, 30);
 
             builder.pop();
         }
