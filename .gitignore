@@ -26,9 +26,14 @@ desktop.ini
 
 # Java
 *.class
-*.jar
 *.war
 *.ear
+
+# Built jars (but not gradle wrapper jar)
+build/libs/*.jar
+
+# Local JDK (downloaded for build)
+jdk8/
 
 # Original KubeJS script (not part of the mod)
 geolosys_finder.js
