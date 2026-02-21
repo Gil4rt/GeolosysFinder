@@ -1,0 +1,33 @@
+modLoader="javafml"
+loaderVersion="[36,)"
+license="MIT"
+
+[[mods]]
+modId="geolosys_scanner"
+version="1.0.0"
+displayName="Geolosys Scanner Addon"
+description='''
+A prospector's radar addon for Geolosys.
+Scan chunks for ores, track targets with a real-time HUD and proximity sounds.
+'''
+
+[[dependencies.geolosys_scanner]]
+    modId="forge"
+    mandatory=true
+    versionRange="[36,)"
+    ordering="NONE"
+    side="BOTH"
+
+[[dependencies.geolosys_scanner]]
+    modId="minecraft"
+    mandatory=true
+    versionRange="[1.16.5,1.17)"
+    ordering="NONE"
+    side="BOTH"
+
+[[dependencies.geolosys_scanner]]
+    modId="geolosys"
+    mandatory=true
+    versionRange="[5.0.0,)"
+    ordering="AFTER"
+    side="BOTH"
