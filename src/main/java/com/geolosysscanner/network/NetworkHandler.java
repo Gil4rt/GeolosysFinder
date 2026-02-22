@@ -15,8 +15,8 @@ public class NetworkHandler {
     public static final SimpleChannel CHANNEL = NetworkRegistry.newSimpleChannel(
             new ResourceLocation(GeolosysScanner.MOD_ID, "main"),
             () -> PROTOCOL_VERSION,
-            PROTOCOL_VERSION::equals,
-            PROTOCOL_VERSION::equals
+            remote -> remote.equals(PROTOCOL_VERSION) || remote.equals(NetworkRegistry.ABSENT),
+            remote -> remote.equals(PROTOCOL_VERSION) || remote.equals(NetworkRegistry.ABSENT)
     );
 
     private static int packetId = 0;
