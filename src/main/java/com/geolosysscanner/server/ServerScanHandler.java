@@ -7,6 +7,7 @@ import com.geolosysscanner.network.OreEntry;
 import com.geolosysscanner.network.PacketRadarUpdate;
 import com.geolosysscanner.network.PacketScanResult;
 import com.geolosysscanner.network.PacketScannerDeactivated;
+import com.geolosysscanner.network.PacketVeinBlocks;
 import net.minecraft.block.BlockState;
 import net.minecraft.entity.player.ServerPlayerEntity;
 import net.minecraft.item.ItemStack;
@@ -86,7 +87,8 @@ public class ServerScanHandler {
 
         oreIds.sort((a, b) -> Integer.compare(oreData.get(b).count, oreData.get(a).count));
 
-        state.setResults(oreIds, oreData);
+        state.setResults(oreIds, oreData,
+                world.dimension(), player.getX(), player.getZ());
 
         List<OreEntry> entries = new ArrayList<>();
         for (String id : oreIds) {
@@ -154,9 +156,25 @@ public class ServerScanHandler {
         );
     }
 
+    private static final double MAX_TRACK_DISTANCE = 150.0;
+
     public static void tickPlayer(ServerPlayerEntity player) {
         PlayerScanState state = getState(player);
         if (!state.active || state.oreIds.isEmpty()) return;
+
+        // Deactivate if player changed dimension
+        if (state.scanDimension != null && player.level.dimension() != state.scanDimension) {
+            handleDeactivate(player);
+            return;
+        }
+
+        // Deactivate if player moved too far from scan center
+        double dx = player.getX() - state.scanCenterX;
+        double dz = player.getZ() - state.scanCenterZ;
+        if (dx * dx + dz * dz > MAX_TRACK_DISTANCE * MAX_TRACK_DISTANCE) {
+            handleDeactivate(player);
+            return;
+        }
 
         state.tickCounter++;
         int interval = ScannerConfig.SERVER.updateIntervalTicks.get();
@@ -168,23 +186,51 @@ public class ServerScanHandler {
     private static void sendRadarUpdate(ServerPlayerEntity player, PlayerScanState state) {
         String targetId = state.oreIds.get(state.targetIdx);
         ScanResult result = state.oreData.get(targetId);
-        if (result == null || result.blocks.isEmpty()) return;
 
         World world = player.level;
 
         // Validate blocks — remove any that have been mined
-        Iterator<BlockPos> iter = result.blocks.iterator();
-        while (iter.hasNext()) {
-            BlockPos pos = iter.next();
-            BlockState bs = world.getBlockState(pos);
-            ResourceLocation rn = bs.getBlock().getRegistryName();
-            if (rn == null || !rn.toString().equals(targetId)) {
-                iter.remove();
-                result.count = Math.max(0, result.count - 1);
+        if (result != null && !result.blocks.isEmpty()) {
+            Iterator<BlockPos> iter = result.blocks.iterator();
+            while (iter.hasNext()) {
+                BlockPos pos = iter.next();
+                BlockState bs = world.getBlockState(pos);
+                ResourceLocation rn = bs.getBlock().getRegistryName();
+                if (rn == null || !rn.toString().equals(targetId)) {
+                    iter.remove();
+                    result.count = Math.max(0, result.count - 1);
+                }
             }
         }
 
-        if (result.blocks.isEmpty()) return;
+        // If current target ore is depleted, remove it and try next
+        if (result == null || result.blocks.isEmpty()) {
+            state.oreData.remove(targetId);
+            state.oreIds.remove(state.targetIdx);
+
+            if (state.oreIds.isEmpty()) {
+                // All ores mined — deactivate
+                handleDeactivate(player);
+                return;
+            }
+
+            // Switch to next ore (or wrap to first)
+            if (state.targetIdx >= state.oreIds.size()) {
+                state.targetIdx = 0;
+            }
+
+            // Send updated ore list to client
+            List<OreEntry> entries = new ArrayList<>();
+            for (String id : state.oreIds) {
+                ScanResult r = state.oreData.get(id);
+                entries.add(new OreEntry(id, r.count, r.minY, r.maxY));
+            }
+            NetworkHandler.CHANNEL.send(
+                    PacketDistributor.PLAYER.with(() -> player),
+                    new PacketScanResult(entries, state.targetIdx)
+            );
+            return;
+        }
 
         double px = player.getX();
         double py = player.getY();
@@ -212,6 +258,18 @@ public class ServerScanHandler {
                         (int) Math.floor(py), result.count
                 )
         );
+
+        // Send all vein block positions when player is close enough
+        if (bestDist < 10.0) {
+            List<int[]> veinPositions = new ArrayList<>();
+            for (BlockPos pos : result.blocks) {
+                veinPositions.add(new int[]{pos.getX(), pos.getY(), pos.getZ()});
+            }
+            NetworkHandler.CHANNEL.send(
+                    PacketDistributor.PLAYER.with(() -> player),
+                    new PacketVeinBlocks(veinPositions)
+            );
+        }
     }
 
     public static void removePlayer(UUID uuid) {

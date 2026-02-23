@@ -27,6 +27,9 @@ public class ClientScanData {
     private static int blockCount = 0;
     private static boolean hasRadarData = false;
 
+    // --- Vein boundary data ---
+    private static List<int[]> veinBlocks = Collections.emptyList();
+
     // --- Sound/animation ---
     private static boolean radarUpdatedThisTick = false;
 
@@ -74,6 +77,10 @@ public class ClientScanData {
         return hasRadarData;
     }
 
+    public static List<int[]> getVeinBlocks() {
+        return veinBlocks;
+    }
+
     public static boolean consumeRadarUpdate() {
         if (radarUpdatedThisTick) {
             radarUpdatedThisTick = false;
@@ -107,11 +114,16 @@ public class ClientScanData {
         radarUpdatedThisTick = true;
     }
 
+    public static void receiveVeinBlocks(List<int[]> blocks) {
+        veinBlocks = new ArrayList<>(blocks);
+    }
+
     public static void deactivate() {
         active = false;
         hasRadarData = false;
         ores = Collections.emptyList();
         targetIdx = 0;
         blockCount = 0;
+        veinBlocks = Collections.emptyList();
     }
 }

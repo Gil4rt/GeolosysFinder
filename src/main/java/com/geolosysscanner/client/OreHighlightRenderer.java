@@ -16,9 +16,12 @@ import net.minecraftforge.client.event.RenderWorldLastEvent;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
 import org.lwjgl.opengl.GL11;
 
+import java.util.List;
+
 /**
- * Renders a glowing wireframe outline around the closest ore block
- * when the scanner radar is active and the player is within 5 blocks.
+ * Renders glowing wireframe outlines around ore blocks.
+ * - Within 10 blocks: highlights ALL vein blocks (vein boundary mode)
+ * - Within 5 blocks (no vein data): highlights closest block only
  */
 public class OreHighlightRenderer {
 
@@ -26,33 +29,18 @@ public class OreHighlightRenderer {
     public void onRenderWorldLast(RenderWorldLastEvent event) {
         if (!ClientScanData.isActive()) return;
         if (!ClientScanData.hasRadarData()) return;
-        if (ClientScanData.getDistance3d() > 5.0) return;
 
         Minecraft mc = Minecraft.getInstance();
-        if (mc.player == null) return;
+        if (mc.player == null || mc.level == null) return;
 
-        int bx = ClientScanData.getClosestX();
-        int by = ClientScanData.getClosestY();
-        int bz = ClientScanData.getClosestZ();
+        double dist = ClientScanData.getDistance3d();
+        String targetOreId = ClientScanData.getTargetOreId();
 
-        // Verify block is still ore (prevents highlighting mined blocks)
-        if (mc.level != null) {
-            BlockState blockState = mc.level.getBlockState(new BlockPos(bx, by, bz));
-            ResourceLocation regName = blockState.getBlock().getRegistryName();
-            if (regName == null || !regName.toString().equals(ClientScanData.getTargetOreId())) {
-                return;
-            }
-        }
-
-        // Get ore color
-        int oreColor = ScannerHudRenderer.getOreColor(ClientScanData.getTargetOreId());
-
-        // Pulsing alpha
+        int oreColor = ScannerHudRenderer.getOreColor(targetOreId);
         float pulse = 0.6f + 0.4f * (float) Math.abs(Math.sin(System.currentTimeMillis() / 300.0));
         float r = ((oreColor >> 16) & 0xFF) / 255.0f;
         float g = ((oreColor >> 8) & 0xFF) / 255.0f;
         float b = (oreColor & 0xFF) / 255.0f;
-        float a = pulse;
 
         MatrixStack ms = event.getMatrixStack();
         ActiveRenderInfo camera = mc.gameRenderer.getMainCamera();
@@ -61,23 +49,7 @@ public class OreHighlightRenderer {
         ms.pushPose();
         ms.translate(-camPos.x, -camPos.y, -camPos.z);
 
-        // Slightly expand box to avoid z-fighting
         float expand = 0.005f;
-        float x0 = bx - expand;
-        float y0 = by - expand;
-        float z0 = bz - expand;
-        float x1 = bx + 1.0f + expand;
-        float y1 = by + 1.0f + expand;
-        float z1 = bz + 1.0f + expand;
-
-        drawWireframeBox(ms, x0, y0, z0, x1, y1, z1, r, g, b, a);
-
-        ms.popPose();
-    }
-
-    private void drawWireframeBox(MatrixStack ms, float x0, float y0, float z0,
-                                   float x1, float y1, float z1,
-                                   float r, float g, float b, float a) {
         Matrix4f matrix = ms.last().pose();
 
         Tessellator tessellator = Tessellator.getInstance();
@@ -91,35 +63,76 @@ public class OreHighlightRenderer {
 
         buffer.begin(GL11.GL_LINES, DefaultVertexFormats.POSITION_COLOR);
 
-        // Bottom face
-        line(buffer, matrix, x0, y0, z0, x1, y0, z0, r, g, b, a);
-        line(buffer, matrix, x1, y0, z0, x1, y0, z1, r, g, b, a);
-        line(buffer, matrix, x1, y0, z1, x0, y0, z1, r, g, b, a);
-        line(buffer, matrix, x0, y0, z1, x0, y0, z0, r, g, b, a);
+        // Vein boundary mode: render ALL vein blocks when close
+        List<int[]> veinBlocks = ClientScanData.getVeinBlocks();
+        if (dist < 10.0 && !veinBlocks.isEmpty()) {
+            Vector3d playerPos = mc.player.position();
+            for (int[] pos : veinBlocks) {
+                BlockState blockState = mc.level.getBlockState(new BlockPos(pos[0], pos[1], pos[2]));
+                ResourceLocation regName = blockState.getBlock().getRegistryName();
+                if (regName == null || !regName.toString().equals(targetOreId)) {
+                    continue;
+                }
 
-        // Top face
-        line(buffer, matrix, x0, y1, z0, x1, y1, z0, r, g, b, a);
-        line(buffer, matrix, x1, y1, z0, x1, y1, z1, r, g, b, a);
-        line(buffer, matrix, x1, y1, z1, x0, y1, z1, r, g, b, a);
-        line(buffer, matrix, x0, y1, z1, x0, y1, z0, r, g, b, a);
+                double bDist = playerPos.distanceTo(
+                        new Vector3d(pos[0] + 0.5, pos[1] + 0.5, pos[2] + 0.5));
+                float dimFactor = bDist < 2.0 ? 1.0f : 0.5f;
 
-        // Vertical edges
-        line(buffer, matrix, x0, y0, z0, x0, y1, z0, r, g, b, a);
-        line(buffer, matrix, x1, y0, z0, x1, y1, z0, r, g, b, a);
-        line(buffer, matrix, x1, y0, z1, x1, y1, z1, r, g, b, a);
-        line(buffer, matrix, x0, y0, z1, x0, y1, z1, r, g, b, a);
+                drawWireframeBox(buffer, matrix,
+                        pos[0] - expand, pos[1] - expand, pos[2] - expand,
+                        pos[0] + 1.0f + expand, pos[1] + 1.0f + expand, pos[2] + 1.0f + expand,
+                        r, g, b, pulse * dimFactor);
+            }
+        } else if (dist <= 5.0) {
+            // Single closest block highlight
+            int bx = ClientScanData.getClosestX();
+            int by = ClientScanData.getClosestY();
+            int bz = ClientScanData.getClosestZ();
+
+            BlockState blockState = mc.level.getBlockState(new BlockPos(bx, by, bz));
+            ResourceLocation regName = blockState.getBlock().getRegistryName();
+            if (regName != null && regName.toString().equals(targetOreId)) {
+                drawWireframeBox(buffer, matrix,
+                        bx - expand, by - expand, bz - expand,
+                        bx + 1.0f + expand, by + 1.0f + expand, bz + 1.0f + expand,
+                        r, g, b, pulse);
+            }
+        }
 
         tessellator.end();
 
         RenderSystem.enableDepthTest();
         RenderSystem.enableTexture();
         RenderSystem.disableBlend();
+
+        ms.popPose();
     }
 
-    private void line(BufferBuilder buffer, Matrix4f matrix,
-                      float x1, float y1, float z1,
-                      float x2, float y2, float z2,
-                      float r, float g, float b, float a) {
+    private static void drawWireframeBox(BufferBuilder buffer, Matrix4f matrix,
+                                          float x0, float y0, float z0,
+                                          float x1, float y1, float z1,
+                                          float r, float g, float b, float a) {
+        // Bottom face
+        line(buffer, matrix, x0, y0, z0, x1, y0, z0, r, g, b, a);
+        line(buffer, matrix, x1, y0, z0, x1, y0, z1, r, g, b, a);
+        line(buffer, matrix, x1, y0, z1, x0, y0, z1, r, g, b, a);
+        line(buffer, matrix, x0, y0, z1, x0, y0, z0, r, g, b, a);
+        // Top face
+        line(buffer, matrix, x0, y1, z0, x1, y1, z0, r, g, b, a);
+        line(buffer, matrix, x1, y1, z0, x1, y1, z1, r, g, b, a);
+        line(buffer, matrix, x1, y1, z1, x0, y1, z1, r, g, b, a);
+        line(buffer, matrix, x0, y1, z1, x0, y1, z0, r, g, b, a);
+        // Vertical edges
+        line(buffer, matrix, x0, y0, z0, x0, y1, z0, r, g, b, a);
+        line(buffer, matrix, x1, y0, z0, x1, y1, z0, r, g, b, a);
+        line(buffer, matrix, x1, y0, z1, x1, y1, z1, r, g, b, a);
+        line(buffer, matrix, x0, y0, z1, x0, y1, z1, r, g, b, a);
+    }
+
+    private static void line(BufferBuilder buffer, Matrix4f matrix,
+                              float x1, float y1, float z1,
+                              float x2, float y2, float z2,
+                              float r, float g, float b, float a) {
         buffer.vertex(matrix, x1, y1, z1).color(r, g, b, a).endVertex();
         buffer.vertex(matrix, x2, y2, z2).color(r, g, b, a).endVertex();
     }

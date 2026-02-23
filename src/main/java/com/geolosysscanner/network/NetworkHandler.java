@@ -10,7 +10,7 @@ import java.util.Optional;
 
 public class NetworkHandler {
 
-    private static final String PROTOCOL_VERSION = "2";
+    private static final String PROTOCOL_VERSION = "3";
 
     public static final SimpleChannel CHANNEL = NetworkRegistry.newSimpleChannel(
             new ResourceLocation(GeolosysScanner.MOD_ID, "main"),
@@ -62,6 +62,13 @@ public class NetworkHandler {
                 PacketScannerDeactivated::encode,
                 PacketScannerDeactivated::decode,
                 PacketScannerDeactivated::handle,
+                Optional.of(NetworkDirection.PLAY_TO_CLIENT));
+
+        // Server -> Client: vein block positions for highlighting
+        CHANNEL.registerMessage(packetId++, PacketVeinBlocks.class,
+                PacketVeinBlocks::encode,
+                PacketVeinBlocks::decode,
+                PacketVeinBlocks::handle,
                 Optional.of(NetworkDirection.PLAY_TO_CLIENT));
     }
 }
